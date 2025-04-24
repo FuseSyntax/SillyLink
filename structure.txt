@@ -1,0 +1,43 @@
+sillylink/
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── auth/
+│   │   │       └── [...nextauth]/
+│   │   │           └── route.ts
+│   │   ├── analytics/
+│   │   │   └── page.tsx
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   ├── [shortCode]/
+│   │   │   └── page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   ├── UrlShortener.tsx
+│   │   ├── SessionWrapper.tsx
+│   │   ├── Analytics.tsx
+│   │   ├── FeaturesGrid.tsx
+│   │   ├── StatsBanner.tsx
+│   │   └── HeroSection.tsx
+│   ├── lib/
+│   │   └── prisma.ts
+├── public/
+│   ├── favicon.ico
+├── prisma/
+│   ├── schema.prisma
+│   ├── migrations/
+├── .env.local
+├── .eslintrc.json
+├── .gitignore
+├── auth.ts
+├── middleware.ts
+├── next.config.mjs
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.ts
+├── tsconfig.json
