@@ -62,4 +62,7 @@ model ShortenedUrl {
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
+  referrals Json?    // Stores referral sources, e.g., { "Social Media": 10, "Direct": 5 }
+
+  @@index([shortCode]) // Index for faster lookups
 }

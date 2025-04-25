@@ -2,47 +2,121 @@
 
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
-import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
-import { ArrowUpIcon, ArrowDownIcon, UsersIcon, GlobeAltIcon, ChartBarIcon } from "@heroicons/react/24/outline";
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { LinkIcon } from "@heroicons/react/24/outline";
+import { MetricsGrid } from "../../components/analytics/MetricsGrid";
+import { UserActivityChart } from "../../components/analytics/UserActivityChart";
+import { UserLocationsMap } from "../../components/analytics/UserLocationsMap";
+import { TopLinksChart } from "../../components/analytics/TopLinksChart";
+import { ReferralSourcesChart } from "../../components/analytics/ReferralSourcesChart";
+import { UrlTable } from "../../components/analytics/UrlTable";
 
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+interface MetricData {
+  totalUrls: number;
+  totalClicks: number;
+  averageClicks: number;
+}
+
+interface UrlData {
+  id: string;
+  shortCode: string;
+  longUrl: string;
+  clicks: number;
+  createdAt: string;
+  referrals?: { [key: string]: number | { clicks: number; coordinates: [number, number] } };
+}
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
-  const [shortenedUrls, setShortenedUrls] = useState([]);
+  const [shortenedUrls, setShortenedUrls] = useState<UrlData[]>([]);
+  const [prevMetrics, setPrevMetrics] = useState<MetricData | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (session?.user?.id) {
-      const fetchUrls = async () => {
-        const urls = await prisma.shortenedUrl.findMany({
-          where: { userId: session.user.id },
-        });
+    const fetchUrls = async () => {
+      try {
+        const currentUrl = session?.user?.id
+          ? `/api/analytics?userId=${session.user.id}`
+          : "/api/analytics";
+        const currentResponse = await fetch(currentUrl);
+        if (!currentResponse.ok) throw new Error("Failed to fetch current analytics");
+        const urls = await currentResponse.json();
         setShortenedUrls(urls);
-      };
-      fetchUrls();
-    }
+        console.log("[AnalyticsPage] Current URLs:", urls);
+
+        const prevUrl = session?.user?.id
+          ? `/api/analytics?userId=${session.user.id}&period=previous`
+          : "/api/analytics?period=previous";
+        const prevResponse = await fetch(prevUrl);
+        if (prevResponse.ok) {
+          const prevUrls = await prevResponse.json();
+          console.log("[AnalyticsPage] Previous URLs:", prevUrls);
+          const prevTotalUrls = prevUrls.length;
+          const prevTotalClicks = prevUrls.reduce((sum: number, url: UrlData) => sum + url.clicks, 0);
+          const prevAverageClicks = prevTotalUrls ? Math.round(prevTotalClicks / prevTotalUrls) : 0;
+          setPrevMetrics({ totalUrls: prevTotalUrls, totalClicks: prevTotalClicks, averageClicks: prevAverageClicks });
+        } else {
+          console.warn("[AnalyticsPage] No previous data available:", prevResponse.status);
+          setPrevMetrics({ totalUrls: 0, totalClicks: 0, averageClicks: 0 });
+        }
+      } catch (err) {
+        setError("Failed to load analytics. Please try again.");
+        console.error("[AnalyticsPage] Analytics fetch error:", err);
+      }
+    };
+    fetchUrls();
+    const interval = setInterval(fetchUrls, 30000);
+    return () => clearInterval(interval);
   }, [session]);
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 ">
-        <p className="text-primary text-xl">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-primary text-xl animate-pulse">Loading...</p>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 ">
+      <div className="min-h-screen flex items-center justify-center">
         <Link href="/login">
-        <p className="cursor-pointer p-4 bg-accent rounded-xl border-2 border-primary">Please sign in to view analytics.</p>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="cursor-pointer p-4 bg-white/50 rounded-xl border-2 border-primary text-primary hover:shadow-lg transition-all"
+          >
+            Please sign in to view analytics
+          </motion.div>
         </Link>
       </div>
     );
   }
+
+  const totalUrls = shortenedUrls.length;
+  const totalClicks = shortenedUrls.reduce((sum, url) => sum + url.clicks, 0);
+  const averageClicks = totalUrls ? Math.round(totalClicks / totalUrls) : 0;
+
+  const calculateTrend = (current: number, previous: number) => {
+    if (isNaN(previous)) return { trend: "up", trendValue: "N/A" };
+    if (previous === 0 && current === 0) return { trend: "up", trendValue: "0%" };
+    if (previous === 0) return { trend: "up", trendValue: "New" };
+    const percentage = ((current - previous) / previous * 100).toFixed(1);
+    return {
+      trend: current >= previous ? "up" : "down",
+      trendValue: `${Math.abs(parseFloat(percentage))}%`,
+    };
+  };
+
+  const urlTrend = prevMetrics
+    ? calculateTrend(totalUrls, prevMetrics.totalUrls)
+    : { trend: "up", trendValue: "N/A" };
+  const clickTrend = prevMetrics
+    ? calculateTrend(totalClicks, prevMetrics.totalClicks)
+    : { trend: "up", trendValue: "N/A" };
+  const avgClickTrend = prevMetrics
+    ? calculateTrend(averageClicks, prevMetrics.averageClicks)
+    : { trend: "up", trendValue: "N/A" };
 
   const activityData = shortenedUrls.map((url) => ({
     date: new Date(url.createdAt).toLocaleDateString(),
@@ -54,150 +128,98 @@ export default function AnalyticsPage() {
     clicks: url.clicks,
   }));
 
-  const referrals = [
-    { name: "Social Media", value: 400 },
-    { name: "Email", value: 300 },
-    { name: "Direct", value: 200 },
-    { name: "Search", value: 100 },
-  ];
+  const referrals = shortenedUrls.reduce((acc, url) => {
+    if (url.referrals) {
+      Object.entries(url.referrals).forEach(([source, count]) => {
+        if (source !== "locations") {
+          acc[source] = (acc[source] || 0) + (count as number);
+        }
+      });
+    }
+    return acc;
+  }, {} as { [key: string]: number });
+
+  const userLocations = shortenedUrls.reduce((acc, url, urlIndex) => {
+    if (url.referrals?.locations) {
+      Object.entries(url.referrals.locations).forEach(([city, { clicks, coordinates }]) => {
+        const existing = acc.find((loc) => loc.name === city && loc.urlId === url.id);
+        if (existing) {
+          existing.clicks += clicks;
+        } else {
+          acc.push({ name: city, coordinates: coordinates as [number, number], clicks, urlId: url.id });
+        }
+      });
+    } else {
+      const mockCities = ["New York", "Paris", "Tokyo", "Sydney"];
+      const mockCoords: [number, number][] = [
+        [-74.006, 40.7128],
+        [2.3522, 48.8566],
+        [139.6917, 35.6895],
+        [151.2093, -33.8688],
+      ];
+      acc.push({
+        name: mockCities[urlIndex % 4],
+        coordinates: mockCoords[urlIndex % 4],
+        clicks: url.clicks || 0,
+        urlId: url.id,
+      });
+    }
+    return acc;
+  }, [] as { name: string; coordinates: [number, number]; clicks: number; urlId: string }[]);
+
+  const hasRealLocations = userLocations.some((loc) => !["New York", "Paris", "Tokyo", "Sydney"].includes(loc.name));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-primary mb-6">
-        Analytics Dashboard for {session.user?.name} (ID: {session.user?.id})
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white shadow-md p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                <UsersIcon className="w-5 h-5 text-secondary" /> Total URLs
-              </h2>
-              <p className="text-2xl font-bold mt-2 text-primary">{shortenedUrls.length}</p>
-            </div>
-            <span className="text-success flex items-center text-sm">
-              <ArrowUpIcon className="w-4 h-4 mr-1" /> 12%
-            </span>
-          </div>
-        </div>
-        <div className="bg-white shadow-md p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                <GlobeAltIcon className="w-5 h-5 text-secondary" /> Total Clicks
-              </h2>
-              <p className="text-2xl font-bold mt-2 text-primary">
-                {shortenedUrls.reduce((sum, url) => sum + url.clicks, 0)}
-              </p>
-            </div>
-            <span className="text-red-500 flex items-center text-sm">
-              <ArrowDownIcon className="w-4 h-4 mr-1" /> 3%
-            </span>
-          </div>
-        </div>
-        <div className="bg-white shadow-md p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                <ChartBarIcon className="w-5 h-5 text-secondary" /> Average Clicks
-              </h2>
-              <p className="text-2xl font-bold mt-2 text-primary">
-                {shortenedUrls.length ? Math.round(shortenedUrls.reduce((sum, url) => sum + url.clicks, 0) / shortenedUrls.length) : 0}
-              </p>
-            </div>
-            <span className="text-success flex items-center text-sm">
-              <ArrowUpIcon className="w-4 h-4 mr-1" /> 8%
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="bg-white shadow-md p-4 rounded-lg mb-8">
-        <h2 className="text-xl font-bold text-primary mb-4">URL Activity</h2>
-        <div className="h-64">
-          <LineChart
-            width={typeof window !== "undefined" && window.innerWidth > 768 ? 900 : 300}
-            height={250}
-            data={activityData}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="visits" stroke="#A76545" strokeWidth={2} />
-          </LineChart>
-        </div>
-      </div>
-      <div className="bg-white shadow-md p-4 rounded-lg mb-8">
-        <h2 className="text-xl font-bold text-primary mb-4">User Locations</h2>
-        <div className="h-96">
-          <ComposableMap>
-            <Geographies geography={geoUrl}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill="#EAEAEC"
-                    stroke="#D6D6DA"
-                  />
-                ))
-              }
-            </Geographies>
-            <Marker coordinates={[-74.006, 40.7128]}>
-              <circle r={8} fill="#A76545" />
-              <text textAnchor="middle" y={-15} className="text-sm font-semibold">
-                New York
-              </text>
-            </Marker>
-            <Marker coordinates={[2.3522, 48.8566]}>
-              <circle r={8} fill="#A76545" />
-              <text textAnchor="middle" y={-15} className="text-sm font-semibold">
-                Paris
-              </text>
-            </Marker>
-          </ComposableMap>
-        </div>
-      </div>
-      <div className="bg-white shadow-md p-4 rounded-lg mb-8">
-        <h2 className="text-xl font-bold text-primary mb-4">Top Links</h2>
-        <BarChart
-          width={typeof window !== "undefined" && window.innerWidth > 768 ? 900 : 300}
-          height={250}
-          data={linkClicks}
+    <div className="relative max-w-7xl mx-auto px-4 py-8">
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 blur-3xl animate-blob" />
+      <div className="relative rounded-2xl p-8 shadow-2xl border-2 border-primary backdrop-blur-sm">
+        <motion.h1
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-3xl font-bold text-primary mb-8 flex items-center gap-3"
         >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="link" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="clicks" fill="#A76545" />
-        </BarChart>
-      </div>
-      <div className="bg-white shadow-md p-4 rounded-lg">
-        <h2 className="text-xl font-bold text-primary mb-4">Referral Sources</h2>
-        <div className="flex justify-center">
-          <PieChart width={400} height={300}>
-            <Pie
-              data={referrals}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label
+          <LinkIcon className="h-8 w-8 text-primary" />
+          Analytics Dashboard for {session.user?.name}
+        </motion.h1>
+
+        {error && (
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            className="mb-8 p-4 bg-red-100/50 border-2 border-red-400 rounded-xl text-red-600"
+          >
+            <p className="text-center">{error}</p>
+            {!hasRealLocations && (
+              <p className="text-center text-sm mt-2">
+                Location data unavailable. Try clicking URLs in production or from non-local devices.
+              </p>
+            )}
+            <button
+              onClick={() => fetchUrls()}
+              className="mt-2 mx-auto block px-4 py-2 bg-primary text-white rounded-lg"
             >
-              {referrals.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={["#A76545", "#FFA55D", "#FFDF88", "#ACC572"][index]}
-                />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
+              Retry
+            </button>
+          </motion.div>
+        )}
+
+        <MetricsGrid
+          totalUrls={totalUrls}
+          totalClicks={totalClicks}
+          averageClicks={averageClicks}
+          urlTrend={urlTrend}
+          clickTrend={clickTrend}
+          avgClickTrend={avgClickTrend}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <UserActivityChart activityData={activityData} />
+          <UserLocationsMap userLocations={userLocations} />
+          <TopLinksChart linkClicks={linkClicks} />
+          <ReferralSourcesChart referrals={referrals} />
         </div>
+
+        <UrlTable shortenedUrls={shortenedUrls} />
       </div>
     </div>
   );
