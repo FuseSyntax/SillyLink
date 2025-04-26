@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { JsonValue } from "@prisma/client/runtime/library"; // Import JsonValue
+
+// Define the type for the URL object returned by Prisma
+interface ShortenedUrl {
+  id: string;
+  shortCode: string;
+  longUrl: string;
+  clicks: number;
+  createdAt: Date;
+  referrals: JsonValue; // Use JsonValue to match Prisma's type
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,7 +30,7 @@ export async function GET(request: Request) {
       };
     }
 
-    const urls = await prisma.shortenedUrl.findMany({
+    const urls: ShortenedUrl[] = await prisma.shortenedUrl.findMany({
       where,
       select: {
         id: true,
@@ -36,8 +47,8 @@ export async function GET(request: Request) {
         data: {
           userId,
           totalUrls: urls.length,
-          totalClicks: urls.reduce((sum: number, url) => sum + url.clicks, 0),
-          averageClicks: urls.length ? urls.reduce((sum: number, url) => sum + url.clicks, 0) / urls.length : 0,
+          totalClicks: urls.reduce((sum: number, url: ShortenedUrl) => sum + url.clicks, 0),
+          averageClicks: urls.length ? urls.reduce((sum: number, url: ShortenedUrl) => sum + url.clicks, 0) / urls.length : 0,
         },
       });
     }
