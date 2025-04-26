@@ -31,8 +31,7 @@ export async function GET(request: Request) {
       },
     });
 
-    // Commented out metricsSnapshot.create as the model is not defined
-    /*
+
     if (period !== "previous" && userId) {
       await prisma.metricsSnapshot.create({
         data: {
@@ -43,7 +42,7 @@ export async function GET(request: Request) {
         },
       });
     }
-    */
+    
 
     return NextResponse.json(urls);
   } catch (error) {
