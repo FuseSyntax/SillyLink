@@ -66,3 +66,12 @@ model ShortenedUrl {
 
   @@index([shortCode]) // Index for faster lookups
 }
+
+model MetricsSnapshot {
+  id            String   @id @default(uuid())
+  userId        String
+  totalUrls     Int
+  totalClicks   Int
+  averageClicks Float
+  createdAt     DateTime @default(now())
+}
