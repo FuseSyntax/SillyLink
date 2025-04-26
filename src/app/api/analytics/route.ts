@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma"; // Adjust the import path as necessary
 import { JsonValue } from "@prisma/client/runtime/library"; // Import JsonValue
 
 // Define the type for the URL object returned by Prisma

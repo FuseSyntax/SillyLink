@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../lib/prisma";
 import { notFound, redirect } from "next/navigation";
-import { trackClick } from "@/lib/clickTracker";
+import { trackClick } from "../../lib/clickTracker";
 import { headers } from "next/headers";
 import axios from "axios";
 
