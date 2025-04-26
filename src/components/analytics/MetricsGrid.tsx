@@ -22,21 +22,21 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <MetricCard
-      icon={<UsersIcon />}
+      icon={<UsersIcon className="h-6 w-6 text-primary" />}
       title="Total URLs"
       value={totalUrls}
       trend={urlTrend.trend}
       trendValue={urlTrend.trendValue}
     />
     <MetricCard
-      icon={<GlobeAltIcon />}
+      icon={<GlobeAltIcon className="h-6 w-6 text-primary" />}
       title="Total Clicks"
       value={totalClicks}
       trend={clickTrend.trend}
       trendValue={clickTrend.trendValue}
     />
     <MetricCard
-      icon={<ChartBarIcon />}
+      icon={<ChartBarIcon className="h-6 w-6 text-primary" />}
       title="Avg. Clicks"
       value={averageClicks}
       trend={avgClickTrend.trend}

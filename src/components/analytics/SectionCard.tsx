@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 interface SectionCardProps {
   title: string;
-  icon: React.ReactElement;
+  icon: React.ReactElement<{ className?: string }>;
   children: React.ReactNode;
 }
 

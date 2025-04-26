@@ -7,17 +7,15 @@ export async function GET(request: Request) {
   const period = searchParams.get("period");
 
   try {
-    let where: any = {};
+    const where: Record<string, string | { lte: Date }> = {};
     if (userId) {
       where.userId = userId;
     }
-
     if (period === "previous") {
-      // Fetch data from before today (e.g., yesterday)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       where.createdAt = {
-        lte: yesterday,
+        lte: thirtyDaysAgo,
       };
     }
 
@@ -32,6 +30,20 @@ export async function GET(request: Request) {
         referrals: true,
       },
     });
+
+    // Commented out metricsSnapshot.create as the model is not defined
+    /*
+    if (period !== "previous" && userId) {
+      await prisma.metricsSnapshot.create({
+        data: {
+          userId,
+          totalUrls: urls.length,
+          totalClicks: urls.reduce((sum, url) => sum + url.clicks, 0),
+          averageClicks: urls.length ? urls.reduce((sum, url) => sum + url.clicks, 0) / urls.length : 0,
+        },
+      });
+    }
+    */
 
     return NextResponse.json(urls);
   } catch (error) {
