@@ -31,18 +31,16 @@ export async function GET(request: Request) {
       },
     });
 
-
     if (period !== "previous" && userId) {
       await prisma.metricsSnapshot.create({
         data: {
           userId,
           totalUrls: urls.length,
-          totalClicks: urls.reduce((sum, url) => sum + url.clicks, 0),
-          averageClicks: urls.length ? urls.reduce((sum, url) => sum + url.clicks, 0) / urls.length : 0,
+          totalClicks: urls.reduce((sum: number, url) => sum + url.clicks, 0),
+          averageClicks: urls.length ? urls.reduce((sum: number, url) => sum + url.clicks, 0) / urls.length : 0,
         },
       });
     }
-    
 
     return NextResponse.json(urls);
   } catch (error) {
