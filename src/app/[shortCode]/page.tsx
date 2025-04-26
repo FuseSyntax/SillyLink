@@ -4,9 +4,11 @@ import { trackClick } from "@/lib/clickTracker";
 import { headers } from "next/headers";
 import axios from "axios";
 
-const locationCache = new Map<string, { city: string; coordinates: [number, number] }>();
+type Location = { city: string; coordinates: [number, number] };
 
-async function getLocation(ip: string) {
+const locationCache = new Map<string, Location>();
+
+async function getLocation(ip: string): Promise<Location> {
   if (ip === "::1" || ip === "127.0.0.1") {
     console.log(`[getLocation] Skipping location for reserved IP: ${ip}`);
     return { city: "Unknown", coordinates: [0, 0] };
@@ -20,19 +22,28 @@ async function getLocation(ip: string) {
   try {
     console.log(`[getLocation] Fetching location for IP: ${ip}`);
     const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-    const { city, latitude, longitude, error, reason } = response.data;
+    const { city, latitude, longitude, error, reason } = response.data as {
+      city?: string;
+      latitude?: number;
+      longitude?: number;
+      error?: boolean;
+      reason?: string;
+    };
 
-    if (error || !city || !latitude || !longitude) {
-      console.warn(`[getLocation] Invalid location data for IP ${ip}:`, { error, reason, data: response.data });
+    if (error || !city || latitude == null || longitude == null) {
+      console.warn(`[getLocation] Invalid data for IP ${ip}:`, { error, reason, data: response.data });
       return { city: "Unknown", coordinates: [0, 0] };
     }
 
-    const location = { city, coordinates: [longitude, latitude] };
+    const location: Location = {
+      city,
+      coordinates: [longitude, latitude],
+    };
     locationCache.set(ip, location);
     console.log(`[getLocation] Cached location for IP ${ip}:`, location);
     return location;
-  } catch (error) {
-    console.error(`[getLocation] Failed to fetch location for IP ${ip}:`, error);
+  } catch (err) {
+    console.error(`[getLocation] Error fetching location for IP ${ip}:`, err);
     return { city: "Unknown", coordinates: [0, 0] };
   }
 }
@@ -45,12 +56,16 @@ export default async function RedirectPage({ params }: { params: { shortCode: st
     select: { longUrl: true },
   });
 
-  if (!url) {
-    return notFound();
-  }
+  if (!url) return notFound();
 
   const headersList = headers();
-  const referrer = (await headersList.get("referer")) || "Direct";
+  const allHeaders: Record<string, string> = {};
+  for (const [key, value] of Array.from(headersList.entries())) {
+    allHeaders[key] = value;
+  }
+  console.log(`[RedirectPage] Headers:`, allHeaders);
+
+  const referrer = headersList.get("referer") || "Direct";
   const referralKey = referrer.includes("twitter.com") || referrer.includes("x.com")
     ? "Social Media"
     : referrer.includes("mailto:") || referrer.includes("email")
@@ -59,11 +74,11 @@ export default async function RedirectPage({ params }: { params: { shortCode: st
     ? "Search"
     : "Direct";
 
-  const ip = (await headersList.get("x-forwarded-for"))?.split(",")[0] || "::1";
-  console.log(`[RedirectPage] Processing click for shortCode: ${shortCode}, IP: ${ip}, Referrer: ${referrer}`);
-  const location = await getLocation(ip);
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || headersList.get("x-real-ip") || "::1";
+  console.log(`[RedirectPage] Click for ${shortCode}, IP: ${ip}, Referrer: ${referrer}`);
 
-  trackClick(shortCode, referralKey, location);
+  const location = await getLocation(ip);
+  await trackClick(shortCode, referralKey, location);
 
   redirect(url.longUrl);
 }

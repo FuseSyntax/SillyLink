@@ -27,44 +27,50 @@ interface UrlData {
   referrals?: { [key: string]: number | { clicks: number; coordinates: [number, number] } };
 }
 
+interface Trend {
+  trend: "up" | "down";
+  trendValue: string;
+}
+
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const [shortenedUrls, setShortenedUrls] = useState<UrlData[]>([]);
   const [prevMetrics, setPrevMetrics] = useState<MetricData | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchUrls = async () => {
-      try {
-        const currentUrl = session?.user?.id
-          ? `/api/analytics?userId=${session.user.id}`
-          : "/api/analytics";
-        const currentResponse = await fetch(currentUrl);
-        if (!currentResponse.ok) throw new Error("Failed to fetch current analytics");
-        const urls = await currentResponse.json();
-        setShortenedUrls(urls);
-        console.log("[AnalyticsPage] Current URLs:", urls);
+  const fetchUrls = async () => {
+    try {
+      const currentUrl = session?.user?.id
+        ? `/api/analytics?userId=${session.user.id}`
+        : "/api/analytics";
+      const currentResponse = await fetch(currentUrl);
+      if (!currentResponse.ok) throw new Error("Failed to fetch current analytics");
+      const urls = await currentResponse.json();
+      setShortenedUrls(urls);
+      console.log("[AnalyticsPage] Current URLs:", urls);
 
-        const prevUrl = session?.user?.id
-          ? `/api/analytics?userId=${session.user.id}&period=previous`
-          : "/api/analytics?period=previous";
-        const prevResponse = await fetch(prevUrl);
-        if (prevResponse.ok) {
-          const prevUrls = await prevResponse.json();
-          console.log("[AnalyticsPage] Previous URLs:", prevUrls);
-          const prevTotalUrls = prevUrls.length;
-          const prevTotalClicks = prevUrls.reduce((sum: number, url: UrlData) => sum + url.clicks, 0);
-          const prevAverageClicks = prevTotalUrls ? Math.round(prevTotalClicks / prevTotalUrls) : 0;
-          setPrevMetrics({ totalUrls: prevTotalUrls, totalClicks: prevTotalClicks, averageClicks: prevAverageClicks });
-        } else {
-          console.warn("[AnalyticsPage] No previous data available:", prevResponse.status);
-          setPrevMetrics({ totalUrls: 0, totalClicks: 0, averageClicks: 0 });
-        }
-      } catch (err) {
-        setError("Failed to load analytics. Please try again.");
-        console.error("[AnalyticsPage] Analytics fetch error:", err);
+      const prevUrl = session?.user?.id
+        ? `/api/analytics?userId=${session.user.id}&period=previous`
+        : "/api/analytics?period=previous";
+      const prevResponse = await fetch(prevUrl);
+      if (prevResponse.ok) {
+        const prevUrls = await prevResponse.json();
+        console.log("[AnalyticsPage] Previous URLs:", prevUrls);
+        const prevTotalUrls = prevUrls.length;
+        const prevTotalClicks = prevUrls.reduce((sum: number, url: UrlData) => sum + url.clicks, 0);
+        const prevAverageClicks = prevTotalUrls ? Math.round(prevTotalClicks / prevTotalUrls) : 0;
+        setPrevMetrics({ totalUrls: prevTotalUrls, totalClicks: prevTotalClicks, averageClicks: prevAverageClicks });
+      } else {
+        console.warn("[AnalyticsPage] No previous data available:", prevResponse.status);
+        setPrevMetrics({ totalUrls: 0, totalClicks: 0, averageClicks: 0 });
       }
-    };
+    } catch (err) {
+      setError("Failed to load analytics. Please try again.");
+      console.error("[AnalyticsPage] Analytics fetch error:", err);
+    }
+  };
+
+  useEffect(() => {
     fetchUrls();
     const interval = setInterval(fetchUrls, 30000);
     return () => clearInterval(interval);
@@ -97,7 +103,7 @@ export default function AnalyticsPage() {
   const totalClicks = shortenedUrls.reduce((sum, url) => sum + url.clicks, 0);
   const averageClicks = totalUrls ? Math.round(totalClicks / totalUrls) : 0;
 
-  const calculateTrend = (current: number, previous: number) => {
+  const calculateTrend = (current: number, previous: number): { trend: "up" | "down"; trendValue: string } => {
     if (isNaN(previous)) return { trend: "up", trendValue: "N/A" };
     if (previous === 0 && current === 0) return { trend: "up", trendValue: "0%" };
     if (previous === 0) return { trend: "up", trendValue: "New" };
@@ -105,16 +111,16 @@ export default function AnalyticsPage() {
     return {
       trend: current >= previous ? "up" : "down",
       trendValue: `${Math.abs(parseFloat(percentage))}%`,
-    };
+    } as { trend: "up" | "down"; trendValue: string };
   };
 
-  const urlTrend = prevMetrics
+  const urlTrend: Trend = prevMetrics
     ? calculateTrend(totalUrls, prevMetrics.totalUrls)
     : { trend: "up", trendValue: "N/A" };
-  const clickTrend = prevMetrics
+  const clickTrend: Trend = prevMetrics
     ? calculateTrend(totalClicks, prevMetrics.totalClicks)
     : { trend: "up", trendValue: "N/A" };
-  const avgClickTrend = prevMetrics
+  const avgClickTrend: Trend = prevMetrics
     ? calculateTrend(averageClicks, prevMetrics.averageClicks)
     : { trend: "up", trendValue: "N/A" };
 
@@ -167,6 +173,8 @@ export default function AnalyticsPage() {
     return acc;
   }, [] as { name: string; coordinates: [number, number]; clicks: number; urlId: string }[]);
 
+  console.log("[AnalyticsPage] userLocations:", JSON.stringify(userLocations, null, 2));
+
   const hasRealLocations = userLocations.some((loc) => !["New York", "Paris", "Tokyo", "Sydney"].includes(loc.name));
 
   return (
@@ -195,7 +203,7 @@ export default function AnalyticsPage() {
               </p>
             )}
             <button
-              onClick={() => fetchUrls()}
+              onClick={fetchUrls}
               className="mt-2 mx-auto block px-4 py-2 bg-primary text-white rounded-lg"
             >
               Retry
