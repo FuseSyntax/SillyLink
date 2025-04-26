@@ -4,6 +4,8 @@ import { trackClick } from "../../lib/clickTracker";
 import { headers } from "next/headers";
 import axios from "axios";
 
+export const dynamic = "force-dynamic"; // Ensure route is not statically generated
+
 type Location = { city: string; coordinates: [number, number] };
 
 const locationCache = new Map<string, Location>();

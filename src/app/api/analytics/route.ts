@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../lib/prisma"; // Adjust the import path as necessary
-import { JsonValue } from "@prisma/client/runtime/library"; // Import JsonValue
+import { prisma } from "../../../lib/prisma";
+import { JsonValue } from "@prisma/client/runtime/library";
 
-// Define the type for the URL object returned by Prisma
 interface ShortenedUrl {
   id: string;
   shortCode: string;
   longUrl: string;
   clicks: number;
   createdAt: Date;
-  referrals: JsonValue; // Use JsonValue to match Prisma's type
+  referrals: JsonValue;
 }
+
+export const dynamic = "force-dynamic"; // Ensure route is not statically generated
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
