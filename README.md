@@ -2,6 +2,9 @@
 
 SillyLink is a URL shortening service that allows users to create short, shareable links from long URLs, track click analytics, and manage links with user authentication. Built with **Next.js**, **Prisma**, and **TypeScript**, it provides a fast, secure, and scalable solution deployed on **Vercel**.
 
+<img src="banner.png" width="100%" />
+
+
 ## Features
 
 - **URL Shortening**: Generate short codes for long URLs.
