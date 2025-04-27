@@ -9,7 +9,7 @@ export default function Header() {
   return (
     <header className="bg-primary p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-accent">
+        <h1 className="text-2xl font-bold cursor-pointer text-accent">
           <Link href="/">SillyLink</Link>
         </h1>
         <nav className="flex items-center space-x-4">
@@ -29,7 +29,7 @@ export default function Header() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="hover:underline text-secondary"
+                className="hover:underline text-secondary cursor-pointer"
               >
                 Sign Out
               </button>
@@ -38,7 +38,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="hover:underline text-secondary"
+              className="hover:underline text-secondary cursor-pointer"
             >
               Sign In
             </Link>

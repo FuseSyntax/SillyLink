@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../lib/prisma";
+import { JsonValue } from "@prisma/client/runtime/library";
+
+interface ShortenedUrl {
+  id: string;
+  shortCode: string;
+  longUrl: string;
+  clicks: number;
+  createdAt: Date;
+  referrals: JsonValue;
+}
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,7 +31,7 @@ export async function GET(request: Request) {
       };
     }
 
-    const urls = await prisma.shortenedUrl.findMany({
+    const urls: ShortenedUrl[] = await prisma.shortenedUrl.findMany({
       where,
       select: {
         id: true,
@@ -31,18 +43,16 @@ export async function GET(request: Request) {
       },
     });
 
-
     if (period !== "previous" && userId) {
       await prisma.metricsSnapshot.create({
         data: {
           userId,
           totalUrls: urls.length,
-          totalClicks: urls.reduce((sum, url) => sum + url.clicks, 0),
-          averageClicks: urls.length ? urls.reduce((sum, url) => sum + url.clicks, 0) / urls.length : 0,
+          totalClicks: urls.reduce((sum: number, url: ShortenedUrl) => sum + url.clicks, 0),
+          averageClicks: urls.length ? urls.reduce((sum: number, url: ShortenedUrl) => sum + url.clicks, 0) / urls.length : 0,
         },
       });
     }
-    
 
     return NextResponse.json(urls);
   } catch (error) {

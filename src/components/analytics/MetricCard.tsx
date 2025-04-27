@@ -20,10 +20,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({ icon, title, value, tren
         {icon}
         <h3 className="text-lg font-semibold text-primary">{title}</h3>
       </div>
-      <p className="text-3xl font-bold text-primary">{value}</p>
-      <p className={`text-sm ${trend === "up" ? "text-green-500" : "text-red-500"}`}>
-        {trend === "up" ? "↑" : "↓"} {trendValue}
-      </p>
+      <div className="flex items-center gap-4 mt-4">
+
+        <p className="text-3xl font-bold text-primary">{value}</p>
+        <p className={`text-sm ${trend === "up" ? "text-green-500" : "text-red-500"}`}>
+          {trend === "up" ? "↑" : "↓"} {trendValue}
+        </p>
+      </div>
     </motion.div>
   );
 };

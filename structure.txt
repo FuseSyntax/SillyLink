@@ -1,5 +1,8 @@
 sillylink/
 ├── src/
+│   ├── lib/
+│   │   └── clickTracker.ts
+│   │   └── prisma.ts
 │   ├── app/
 │   │   ├── api/
 │   │   │   └── auth/
@@ -32,9 +35,6 @@ sillylink/
 │   │   ├── FeaturesGrid.tsx
 │   │   ├── StatsBanner.tsx
 │   │   └── HeroSection.tsx
-│   ├── lib/
-│   │   └── clickTracker.ts
-│   │   └── prisma.ts
 ├── public/
 │   ├── favicon.ico
 ├── prisma/
