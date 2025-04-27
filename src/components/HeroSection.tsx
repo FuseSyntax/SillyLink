@@ -19,7 +19,7 @@ export default function HeroSection() {
           Transform Links Instantly
         </h1>
         <p className="text-xl text-black mb-8">
-          Create memorable short links with advanced analytics and blockchain-powered security
+          Create memorable short links with advanced analytics and advance security
         </p>
       </div>
     </motion.section>

@@ -11,7 +11,7 @@ const features = [
   {
     icon: <ShieldCheckIcon className="h-8 w-8" />,
     title: "Secure",
-    desc: "Blockchain-verified links with military-grade encryption"
+    desc: "Verified links with military-grade encryption"
   },
   {
     icon: <ChartBarIcon className="h-8 w-8" />,
