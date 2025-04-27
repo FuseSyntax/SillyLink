@@ -183,8 +183,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="relative max-w-7xl mx-auto px-4 py-8">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 blur-3xl animate-blob" />
-      <div className="relative rounded-2xl p-8 shadow-2xl border-2 border-primary backdrop-blur-sm">
+      <div className="relative rounded-2xl p-4 md:p-8 shadow-2xl border-2 border-primary backdrop-blur-sm">
         <motion.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -225,9 +224,9 @@ export default function AnalyticsPage() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <UserDetailsGrid userId={session.user?.id} />
           <UserActivityChart activityData={activityData} />
           {/* <UserLocationsMap userLocations={userLocations} /> */}
-          <UserDetailsGrid userId={session.user?.id} />
           <TopLinksChart linkClicks={linkClicks} />
           <ReferralSourcesChart referrals={referrals} />
         </div>
