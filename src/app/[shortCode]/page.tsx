@@ -4,7 +4,7 @@ import { trackClick } from "../../lib/clickTracker";
 import { headers } from "next/headers";
 import axios from "axios";
 
-export const dynamic = "force-dynamic"; // Ensure route is not statically generated
+export const dynamic = "force-dynamic"; 
 
 type Location = { city: string; coordinates: [number, number] };
 
@@ -12,17 +12,14 @@ const locationCache = new Map<string, Location>();
 
 async function getLocation(ip: string): Promise<Location> {
   if (ip === "::1" || ip === "127.0.0.1") {
-    console.log(`[getLocation] Skipping location for reserved IP: ${ip}`);
     return { city: "Unknown", coordinates: [0, 0] };
   }
 
   if (locationCache.has(ip)) {
-    console.log(`[getLocation] Cache hit for IP: ${ip}`, locationCache.get(ip));
     return locationCache.get(ip)!;
   }
 
   try {
-    console.log(`[getLocation] Fetching location for IP: ${ip}`);
     const response = await axios.get(`https://ipapi.co/${ip}/json/`);
     const { city, latitude, longitude, error, reason } = response.data as {
       city?: string;
@@ -42,7 +39,6 @@ async function getLocation(ip: string): Promise<Location> {
       coordinates: [longitude, latitude],
     };
     locationCache.set(ip, location);
-    console.log(`[getLocation] Cached location for IP ${ip}:`, location);
     return location;
   } catch (err) {
     console.error(`[getLocation] Error fetching location for IP ${ip}:`, err);
@@ -65,7 +61,6 @@ export default async function RedirectPage({ params }: { params: { shortCode: st
   for (const [key, value] of Array.from(headersList.entries())) {
     allHeaders[key] = value;
   }
-  console.log(`[RedirectPage] Headers:`, allHeaders);
 
   const referrer = headersList.get("referer") || "Direct";
   const referralKey = referrer.includes("twitter.com") || referrer.includes("x.com")
@@ -77,7 +72,6 @@ export default async function RedirectPage({ params }: { params: { shortCode: st
     : "Direct";
 
   const ip = headersList.get("x-forwarded-for")?.split(",")[0] || headersList.get("x-real-ip") || "::1";
-  console.log(`[RedirectPage] Click for ${shortCode}, IP: ${ip}, Referrer: ${referrer}`);
 
   const location = await getLocation(ip);
   await trackClick(shortCode, referralKey, location);

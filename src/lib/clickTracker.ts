@@ -1,4 +1,3 @@
-// lib/clickTracker.ts
 
 import { prisma } from "./prisma";
 
@@ -32,7 +31,6 @@ setInterval(async () => {
     }
 
     updates[shortCode].clicks += 1;
-    // Ensure numeric count
     updates[shortCode].referrals[referralKey] =
       (typeof updates[shortCode].referrals[referralKey] === "number"
         ? updates[shortCode].referrals[referralKey]
@@ -47,12 +45,10 @@ setInterval(async () => {
     }
   }
 
-  // Clear queue
   clickQueue.length = 0;
 
   try {
     for (const [shortCode, { clicks, referrals }] of Object.entries(updates)) {
-      // Fetch existing referrals JSON
       const result = await prisma.shortenedUrl.findUnique({
         where: { shortCode },
         select: { referrals: true },
@@ -63,11 +59,9 @@ setInterval(async () => {
         continue;
       }
 
-      // Cast to our Referrals type and set default
       const existing = (result.referrals as Referrals) ?? { locations: {} };
       const currentReferrals: Referrals = { ...existing };
 
-      // Merge numeric referrals
       for (const [key, count] of Object.entries(referrals)) {
         if (key !== "locations") {
           currentReferrals[key] =
@@ -75,7 +69,6 @@ setInterval(async () => {
         }
       }
 
-      // Merge location referrals
       if (referrals.locations && Object.keys(referrals.locations).length > 0) {
         currentReferrals.locations = currentReferrals.locations || {};
         for (const [city, { clicks: cityClicks, coordinates }] of Object.entries(
@@ -89,7 +82,6 @@ setInterval(async () => {
         }
       }
 
-      // Update the DB
       const updatedUrl = await prisma.shortenedUrl.update({
         where: { shortCode },
         data: { clicks: { increment: clicks }, referrals: currentReferrals },

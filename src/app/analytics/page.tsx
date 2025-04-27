@@ -1,16 +1,16 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LinkIcon } from "@heroicons/react/24/outline";
-import { MetricsGrid } from "../../components/analytics/MetricsGrid";
-import { UserActivityChart } from "../../components/analytics/UserActivityChart";
-import { UserLocationsMap } from "../../components/analytics/UserLocationsMap";
-import { TopLinksChart } from "../../components/analytics/TopLinksChart";
-import { ReferralSourcesChart } from "../../components/analytics/ReferralSourcesChart";
-import { UrlTable } from "../../components/analytics/UrlTable";
+import { MetricsGrid } from "@/components/analytics/MetricsGrid";
+import { UserActivityChart } from "@/components/analytics/UserActivityChart";
+// import { UserLocationsMap } from "@/components/analytics/UserLocationsMap";
+import { TopLinksChart } from "@/components/analytics/TopLinksChart";
+import { ReferralSourcesChart } from "@/components/analytics/ReferralSourcesChart";
+import { UrlTable } from "@/components/analytics/UrlTable";
+import UserDetailsGrid from "@/components/analytics/UserDetailsGrid";
 
 interface MetricData {
   totalUrls: number;
@@ -39,23 +39,26 @@ export default function AnalyticsPage() {
   const [error, setError] = useState("");
 
   const fetchUrls = async () => {
+    if (status !== 'authenticated' || !session?.user?.id) {
+      console.log('[AnalyticsPage] Skipping fetch: Session not ready');
+      return;
+    }
+
     try {
-      const currentUrl = session?.user?.id
-        ? `/api/analytics?userId=${session.user.id}`
-        : "/api/analytics";
+      const currentUrl = `/api/analytics?userId=${session.user.id}`;
+      console.log('[AnalyticsPage] Fetching current URL:', currentUrl);
       const currentResponse = await fetch(currentUrl);
       if (!currentResponse.ok) throw new Error("Failed to fetch current analytics");
       const urls = await currentResponse.json();
+      console.log('[AnalyticsPage] Current URLs:', urls);
       setShortenedUrls(urls);
-      console.log("[AnalyticsPage] Current URLs:", urls);
 
-      const prevUrl = session?.user?.id
-        ? `/api/analytics?userId=${session.user.id}&period=previous`
-        : "/api/analytics?period=previous";
+      const prevUrl = `/api/analytics?userId=${session.user.id}&period=previous`;
+      console.log('[AnalyticsPage] Fetching previous URL:', prevUrl);
       const prevResponse = await fetch(prevUrl);
       if (prevResponse.ok) {
         const prevUrls = await prevResponse.json();
-        console.log("[AnalyticsPage] Previous URLs:", prevUrls);
+        console.log('[AnalyticsPage] Previous URLs:', prevUrls);
         const prevTotalUrls = prevUrls.length;
         const prevTotalClicks = prevUrls.reduce((sum: number, url: UrlData) => sum + url.clicks, 0);
         const prevAverageClicks = prevTotalUrls ? Math.round(prevTotalClicks / prevTotalUrls) : 0;
@@ -71,10 +74,13 @@ export default function AnalyticsPage() {
   };
 
   useEffect(() => {
-    fetchUrls();
-    const interval = setInterval(fetchUrls, 30000);
-    return () => clearInterval(interval);
-  }, [session]);
+    console.log('[AnalyticsPage] Session:', session, 'Status:', status);
+    if (status === 'authenticated' && session?.user?.id) {
+      fetchUrls();
+      const interval = setInterval(fetchUrls, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [session, status]);
 
   if (status === "loading") {
     return (
@@ -103,7 +109,7 @@ export default function AnalyticsPage() {
   const totalClicks = shortenedUrls.reduce((sum, url) => sum + url.clicks, 0);
   const averageClicks = totalUrls ? Math.round(totalClicks / totalUrls) : 0;
 
-  const calculateTrend = (current: number, previous: number): { trend: "up" | "down"; trendValue: string } => {
+  const calculateTrend = (current: number, previous: number): Trend => {
     if (isNaN(previous)) return { trend: "up", trendValue: "N/A" };
     if (previous === 0 && current === 0) return { trend: "up", trendValue: "0%" };
     if (previous === 0) return { trend: "up", trendValue: "New" };
@@ -111,7 +117,7 @@ export default function AnalyticsPage() {
     return {
       trend: current >= previous ? "up" : "down",
       trendValue: `${Math.abs(parseFloat(percentage))}%`,
-    } as { trend: "up" | "down"; trendValue: string };
+    };
   };
 
   const urlTrend: Trend = prevMetrics
@@ -173,8 +179,6 @@ export default function AnalyticsPage() {
     return acc;
   }, [] as { name: string; coordinates: [number, number]; clicks: number; urlId: string }[]);
 
-  console.log("[AnalyticsPage] userLocations:", JSON.stringify(userLocations, null, 2));
-
   const hasRealLocations = userLocations.some((loc) => !["New York", "Paris", "Tokyo", "Sydney"].includes(loc.name));
 
   return (
@@ -222,7 +226,8 @@ export default function AnalyticsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <UserActivityChart activityData={activityData} />
-          <UserLocationsMap userLocations={userLocations} />
+          {/* <UserLocationsMap userLocations={userLocations} /> */}
+          <UserDetailsGrid userId={session.user?.id} />
           <TopLinksChart linkClicks={linkClicks} />
           <ReferralSourcesChart referrals={referrals} />
         </div>

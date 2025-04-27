@@ -11,7 +11,7 @@ interface ShortenedUrl {
   referrals: JsonValue;
 }
 
-export const dynamic = "force-dynamic"; // Ensure route is not statically generated
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

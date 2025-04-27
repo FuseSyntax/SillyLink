@@ -1,8 +1,9 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { nanoid } from "nanoid";
 
-export const dynamic = "force-dynamic"; // Ensure route is not statically generated
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {

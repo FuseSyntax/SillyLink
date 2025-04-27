@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { LinkIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
-import { GithubIcon, GoogleIcon } from "../../components/Icons"; // You'll need to create these SVG components
+import { GithubIcon, GoogleIcon } from "../../components/Icons";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
