@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   },
   description: "Create memorable short links with advanced analytics and blockchain-powered security",
   keywords: ["url shortener", "analytics", "sillylink"],
-  authors: [{ name: "SillyLink", url: "https://silly-link.vercel.app" }],
+  authors: [{ name: "SillyLink", url: "https://sillylink.netlify.app" }],
   openGraph: {
     title: "SillyLink",
     description: "Create memorable short links with advanced analytics and blockchain-powered security",
-    url: "https://silly-link.vercel.app",
+    url: "https://sillylink.netlify.app",
     siteName: "SillyLink",
     locale: "en-US",
     type: "website",
